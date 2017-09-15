@@ -7,7 +7,7 @@ import gi
 
 gi.require_version('Clutter', '1.0')
 gi.require_version('ClutterGdk', '1.0')
-from gi.repository import Clutter, ClutterGdk
+from gi.repository import Clutter, ClutterGdk, Pango
 
 # Events
 
@@ -41,9 +41,14 @@ if __name__ == "__main__":
     stage.connect("delete-event", stage_on_delete)
     stage.connect("button-press-event", stage_on_button_press)
 
+    layout = Clutter.BinLayout()
+    stage.set_layout_manager(layout)
+
     entry = Clutter.Text.new_with_text("Sans 28px", "")
     entry.set_editable(True)
     entry.set_reactive(True)
+    entry.set_single_line_mode(True)
+    entry.set_line_alignment(Pango.Alignment.CENTER)
     entry.connect("key-press-event", entry_on_key_press)
 
     stage.add_actor(entry)
@@ -52,6 +57,8 @@ if __name__ == "__main__":
     stage.set_key_focus(entry)
 
     stage_window = ClutterGdk.get_stage_window(stage)
+    stage_window.set_keep_above(True)
+    stage_window.set_modal_hint(True)
     stage_window.set_skip_taskbar_hint(True)
     stage_window.set_skip_pager_hint(True)
     # TODO always in front and on active screen
