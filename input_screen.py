@@ -24,6 +24,7 @@ def entry_on_key_press(entry, event, user_data=None):
         text = entry.get_text()
         if text:
             print(text)
+            sys.stdout.flush()
         else:
             Clutter.main_quit()
         entry.set_text("")
