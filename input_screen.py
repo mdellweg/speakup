@@ -28,11 +28,22 @@ def entry_on_key_press(entry, event, user_data=None):
         else:
             Clutter.main_quit()
         entry.set_text("")
-        stage = user_data
-        for old_entry in stage.old_entries:
+        entry.old_iterator = -1
+        for old_entry in entry.old_entries:
             old_text = old_entry.get_text()
             old_entry.set_text(text)
             text = old_text
+        return True
+    if event.keyval == Clutter.KEY_Up:
+        entry.old_iterator = min(entry.old_iterator + 1, 14)
+        entry.set_text(entry.old_entries[entry.old_iterator].get_text())
+        return True
+    if event.keyval == Clutter.KEY_Down:
+        entry.old_iterator = max(entry.old_iterator - 1, -1)
+        if entry.old_iterator < 0:
+            entry.set_text("")
+        else:
+            entry.set_text(entry.old_entries[entry.old_iterator].get_text())
         return True
     if event.keyval == Clutter.KEY_Escape:
         Clutter.main_quit()
@@ -57,13 +68,13 @@ if __name__ == "__main__":
     layout.set_spacing(15)
     stage.set_layout_manager(layout)
 
-    stage.old_entries = []
+    old_entries = []
     for i in range(15):
         old_entry = Clutter.Text.new_with_text("Sans 28px", "")
         old_entry.set_color(Clutter.Color.new(0, 128, 0, (i + 1) * 16))
-        stage.old_entries.append(old_entry)
+        old_entries.append(old_entry)
         stage.add_actor(old_entry)
-    stage.old_entries.reverse()
+    old_entries.reverse()
 
     entry = Clutter.Text.new_with_text("Sans 28px", "")
     entry.set_color(text_color)
@@ -71,8 +82,10 @@ if __name__ == "__main__":
     entry.set_reactive(True)
     entry.set_single_line_mode(True)
     entry.set_line_alignment(Pango.Alignment.CENTER)
-    entry.connect("key-press-event", entry_on_key_press, stage)
+    entry.connect("key-press-event", entry_on_key_press)
     stage.add_actor(entry)
+    entry.old_entries = old_entries
+    entry.old_iterator = -1
 
     stage.show()
     stage.set_fullscreen(True)
