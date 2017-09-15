@@ -47,6 +47,10 @@ def entry_on_key_press(entry, event, user_data=None):
         return True
     if event.keyval == Clutter.KEY_Escape:
         Clutter.main_quit()
+    if event.keyval in entry.idioms:
+        print(entry.idioms[event.keyval])
+        sys.stdout.flush()
+        return True
 
 
 # Main
@@ -86,6 +90,9 @@ if __name__ == "__main__":
     stage.add_actor(entry)
     entry.old_entries = old_entries
     entry.old_iterator = -1
+
+    with open('./idioms.txt') as f:
+        entry.idioms = { k: f.readline().strip() for k in range(Clutter.KEY_F1, Clutter.KEY_F12 + 1)}
 
     stage.show()
     stage.set_fullscreen(True)
