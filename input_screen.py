@@ -9,7 +9,14 @@ gi.require_version('Clutter', '1.0')
 gi.require_version('ClutterGdk', '1.0')
 from gi.repository import Clutter, ClutterGdk, Pango
 
-# Events
+# --- Glue layer ---
+
+def speak(text):
+    print(text)
+    sys.stdout.flush()
+
+
+# --- Events ---
 
 def stage_on_delete(stage, event, user_data=None):
     Clutter.main_quit()
@@ -23,8 +30,7 @@ def entry_on_key_press(entry, event, user_data=None):
     if event.keyval in [ Clutter.KEY_Return, Clutter.KEY_KP_Enter ]:
         text = entry.get_text()
         if text:
-            print(text)
-            sys.stdout.flush()
+            speak(text)
         else:
             Clutter.main_quit()
         entry.set_text("")
@@ -39,7 +45,7 @@ def entry_on_key_press(entry, event, user_data=None):
         entry.set_text(entry.old_entries[entry.old_iterator].get_text())
         return True
     if event.keyval == Clutter.KEY_Down:
-        entry.old_iterator = max(entry.old_iterator - 1, -1)
+        entry.old_iterator = max(entry.old_iterator, 0) - 1
         if entry.old_iterator < 0:
             entry.set_text("")
         else:
@@ -47,13 +53,12 @@ def entry_on_key_press(entry, event, user_data=None):
         return True
     if event.keyval == Clutter.KEY_Escape:
         Clutter.main_quit()
-    if event.keyval in entry.idioms:
-        print(entry.idioms[event.keyval])
-        sys.stdout.flush()
+    if event.keyval in entry.idioms and entry.idioms[event.keyval]:
+        entry.set_text(entry.idioms[event.keyval])
         return True
 
 
-# Main
+# --- Main ---
 
 if __name__ == "__main__":
     stage_color = Clutter.Color.new(0, 0, 0, 0)
