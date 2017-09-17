@@ -4,6 +4,7 @@
 
 import sys
 import gi
+from espeak import espeak
 
 gi.require_version('Clutter', '1.0')
 gi.require_version('ClutterGdk', '1.0')
@@ -12,8 +13,7 @@ from gi.repository import Clutter, ClutterGdk, Pango
 # --- Glue layer ---
 
 def speak(text):
-    print(text)
-    sys.stdout.flush()
+    espeak.synth(text)
 
 
 # --- Events ---
@@ -95,9 +95,13 @@ if __name__ == "__main__":
     stage.add_actor(entry)
     entry.old_entries = old_entries
     entry.old_iterator = -1
+    entry.idioms = {}
 
-    with open('./idioms.txt') as f:
-        entry.idioms = { k: f.readline().strip() for k in range(Clutter.KEY_F1, Clutter.KEY_F12 + 1)}
+    try:
+        with open('./idioms.txt') as f:
+            entry.idioms = { k: f.readline().strip() for k in range(Clutter.KEY_F1, Clutter.KEY_F12 + 1)}
+    except FileNotFoundError:
+        pass
 
     stage.show()
     stage.set_fullscreen(True)
