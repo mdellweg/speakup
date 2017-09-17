@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-# simple input tool
 # (C) 2017 Matthias Dellweg
 
+import os
 import sys
+import re
 import gi
+import yaml
 from espeak import espeak
 
 gi.require_version('Clutter', '1.0')
@@ -12,25 +14,34 @@ from gi.repository import Clutter, ClutterGdk, Pango
 
 # --- Glue layer ---
 
-def speak(text):
-    espeak.synth(text)
+def speak(text, config):
+    language = config['default_language']
+    lang_match = re.match('^<(.*)>(.*)$', text)
+    if lang_match:
+        language = lang_match.group(1)
+        text = lang_match.group(2)
+    if language in config['voices']:
+        espeak.set_voice(config['voices'][language])
+    text = text.strip()
+    if text:
+        espeak.synth(text)
 
 
 # --- Events ---
 
-def stage_on_delete(stage, event, user_data=None):
+def stage_on_delete(stage, event, config=None):
     Clutter.main_quit()
 
 
-def stage_on_button_press(stage, event, user_data=None):
+def stage_on_button_press(stage, event, config=None):
     Clutter.main_quit()
 
 
-def entry_on_key_press(entry, event, user_data=None):
+def entry_on_key_press(entry, event, config=None):
     if event.keyval in [ Clutter.KEY_Return, Clutter.KEY_KP_Enter ]:
         text = entry.get_text()
         if text:
-            speak(text)
+            speak(text, config)
         else:
             Clutter.main_quit()
         entry.set_text("")
@@ -53,14 +64,32 @@ def entry_on_key_press(entry, event, user_data=None):
         return True
     if event.keyval == Clutter.KEY_Escape:
         Clutter.main_quit()
-    if event.keyval in entry.idioms and entry.idioms[event.keyval]:
-        entry.set_text(entry.idioms[event.keyval])
+    if event.keyval in config['mapped_idioms']:
+        entry.set_text(config['mapped_idioms'][event.keyval])
         return True
 
 
-# --- Main ---
+# --- setup ---
 
-if __name__ == "__main__":
+def read_config():
+    config_base = os.getenv('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
+    try:
+        with open(os.path.join(config_base, 'speakup.yml')) as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        pass
+    if not 'idioms' in config:
+        config['idioms'] = [ 'Yup', 'Nope' ]
+    if not 'voices' in config:
+        config['voices'] = { 'en': 'english', 'de': 'german' }
+    if not 'default_language' in config:
+        config['default_language'] = list(config['voices'].keys())[0]
+    # adjust info
+    config['mapped_idioms'] = { k: str(v) for k, v in zip(range(Clutter.KEY_F1, Clutter.KEY_F12 + 1), config['idioms']) }
+    return config
+
+
+def setup_stage(config):
     stage_color = Clutter.Color.new(0, 0, 0, 0)
     text_color = Clutter.Color.new(0, 128, 0, 255)
 
@@ -69,8 +98,8 @@ if __name__ == "__main__":
     stage.set_title("Speakup")
     stage.set_use_alpha(True)
     stage.set_background_color(stage_color)
-    stage.connect("delete-event", stage_on_delete)
-    stage.connect("button-press-event", stage_on_button_press)
+    stage.connect("delete-event", stage_on_delete, config)
+    stage.connect("button-press-event", stage_on_button_press, config)
 
     layout = Clutter.BoxLayout()
     layout.set_orientation(Clutter.Orientation.VERTICAL)
@@ -91,17 +120,10 @@ if __name__ == "__main__":
     entry.set_reactive(True)
     entry.set_single_line_mode(True)
     entry.set_line_alignment(Pango.Alignment.CENTER)
-    entry.connect("key-press-event", entry_on_key_press)
+    entry.connect("key-press-event", entry_on_key_press, config)
     stage.add_actor(entry)
     entry.old_entries = old_entries
     entry.old_iterator = -1
-    entry.idioms = {}
-
-    try:
-        with open('./idioms.txt') as f:
-            entry.idioms = { k: f.readline().strip() for k in range(Clutter.KEY_F1, Clutter.KEY_F12 + 1)}
-    except FileNotFoundError:
-        pass
 
     stage.show()
     stage.set_fullscreen(True)
@@ -113,4 +135,11 @@ if __name__ == "__main__":
     stage_window.set_skip_taskbar_hint(True)
     stage_window.set_skip_pager_hint(True)
     # TODO always in front and on active screen
+
+
+# --- Main ---
+
+if __name__ == "__main__":
+    config = read_config()
+    setup_stage(config)
     Clutter.main()
