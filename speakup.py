@@ -72,6 +72,7 @@ def entry_on_key_press(entry, event, config=None):
 # --- setup ---
 
 def read_config():
+    config = {}
     config_base = os.getenv('XDG_CONFIG_HOME') or os.path.expanduser('~/.config')
     try:
         with open(os.path.join(config_base, 'speakup.yml')) as f:
@@ -79,7 +80,7 @@ def read_config():
     except FileNotFoundError:
         pass
     if not 'idioms' in config:
-        config['idioms'] = [ 'Yup', 'Nope' ]
+        config['idioms'] = [ '<en> Yup', '<en> Nope' ]
     if not 'voices' in config:
         config['voices'] = { 'en': 'english', 'de': 'german' }
     if not 'default_language' in config:
